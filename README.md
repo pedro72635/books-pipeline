@@ -98,7 +98,7 @@ project_root/
 GOOGLE_BOOKS_API_KEY=tu_api_key
 USER_AGENT=books-pipeline-bot/1.0
 RATE_LIMIT_SECONDS=0.8
-SEARCH_QUERY=data science
+SEARCH_QUERY=animals
 MAX_BOOKS=15
 ```
 
