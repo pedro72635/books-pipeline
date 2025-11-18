@@ -265,27 +265,65 @@ with open(metrics_path, 'w', encoding='utf-8') as f:
     json.dump(quality_metrics, f, indent=4, ensure_ascii=False)
 
 schema_content = """
-# Schema Documentation
+# 📚 Schema Documentation
 
 ## dim_book.parquet
-- book_id: str, not null, ISBN13 o ID canónico (hash)
-- title: str, nullable
-- title_normalized: str, nullable
-- author_principal: str, nullable
-- authors: list[str], nullable
-- publisher: str, nullable
-- year_pub: int, nullable
-- pub_date_iso: str, nullable
-- language_bcp: str, nullable
-- isbn10: str, nullable
-- isbn13: str, nullable
-- categories: list[str], nullable
-- price: float, nullable
-- currency_iso: str, nullable
-- fuente_ganadora: str, not null
-- ts_last_update: str, not null
-- validation_flag: str, not null
+
+Este esquema describe el modelo canónico del dataset `dim_book`, generado a partir de la integración de Goodreads y Google Books. 
+Se ha seleccionado cuidadosamente el tipo de dato y formato de cada campo para asegurar consistencia, calidad y análisis posteriores.
+
+- book_id_chosen: str, not null  
+  ID canónico del libro. Se usa `str` porque puede ser ISBN-10, ISBN-13 o hash alfanumérico. No puede ser nulo para asegurar unicidad.
+
+- title: str, nullable  
+  Título del libro. `str` permite texto libre; nullable porque algunos registros pueden carecer de título tras limpieza.
+
+- title_normalized: str, nullable  
+  Título normalizado en minúsculas y sin espacios extra. `str` para búsquedas consistentes y deduplicación.
+
+- author_principal: str, nullable  
+  Primer autor de la lista de autores. `str` facilita comparaciones y agregaciones; nullable si no hay autores.
+
+- authors: list[str], nullable  
+  Lista de todos los autores. Se usa `list[str]` porque un libro puede tener múltiples autores; nullable si no hay información.
+
+- publisher: str, nullable  
+  Editorial del libro. `str` para texto libre; nullable si no se conoce.
+
+- year_pub: int, nullable  
+  Año de publicación extraído de la fecha ISO. `int` permite filtrado y agregaciones temporales; nullable si fecha desconocida.
+
+- pub_date_iso: str, nullable  
+  Fecha de publicación en formato ISO-8601 (`YYYY-MM-DD`). Se usa `str` en ISO para consistencia, compatibilidad con bases de datos y facilidad de ordenamiento.
+
+- language_bcp: str, nullable  
+  Código de idioma según BCP-47 (ej. "en", "es"). `str` para estandarización y filtrado multilingüe; nullable si desconocido.
+
+- isbn10: str, nullable  
+  ISBN-10. `str` porque puede contener 'X' y para preservar ceros iniciales; nullable si no disponible.
+
+- isbn13: str, nullable  
+  ISBN-13 validado. `str` por misma razón que ISBN-10; clave principal de deduplicación; nullable si no disponible.
+
+- categories: list[str], nullable  
+  Categorías o géneros. `list[str]` porque puede haber múltiples valores; nullable si no se especifica.
+
+- price: float, nullable  
+  Precio del libro. `float` para cálculos matemáticos; nullable si no hay precio disponible.
+
+- currency_iso: str, nullable  
+  Moneda en formato ISO-4217 (ej. "EUR"). `str` para compatibilidad internacional y estandarización de análisis; nullable si no se conoce.
+
+- fuente_ganadora: str, not null  
+  Fuente principal (goodreads o googlebooks). `str` para trazabilidad; no nullable para siempre identificar la fuente.
+
+- ts_last_update: str, not null  
+  Timestamp UTC de última actualización en ISO-8601. `str` en formato estándar para ordenamiento, compatibilidad y auditoría; no nullable.
+
+- validation_flag: str, not null  
+  Estado de validación del ISBN (`valid` / `invalid_isbn`). `str` porque representa categorías textuales; no nullable para asegurar control de calidad.
 """
+
 
 with open(schema_path, 'w', encoding='utf-8') as f:
     f.write(schema_content.strip())
