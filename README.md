@@ -131,3 +131,25 @@ Generará:
 * `docs/quality_metrics.json` 📊
 * `docs/schema.md` 📑
 
+5. Pruebas de ejecucion:
+   
+Muestra de un libro con sus datos de Goodreads:
+
+<img width="668" height="209" alt="image" src="https://github.com/user-attachments/assets/5a409ab2-ee16-48e5-9d7f-219a4566d453" />
+
+Ejemplo de libros obtenidos por Google Books:
+
+<img width="1231" height="108" alt="image" src="https://github.com/user-attachments/assets/9b649518-4876-4c61-94b7-bf4377b06d13" />
+
+Datos unificados y limpios
+<img width="1300" height="299" alt="image" src="https://github.com/user-attachments/assets/5d56c045-b7e6-40e6-b691-8d5dd5a5c500" />
+
+Ejemplo de archivos creados:
+
+<img width="170" height="513" alt="image" src="https://github.com/user-attachments/assets/f4077c56-0c86-47a6-83bb-434f7953f29b" />
+
+Metricas de datos:
+
+<img width="335" height="751" alt="image" src="https://github.com/user-attachments/assets/9c4b7dad-41f5-4de1-9a21-0897d738be57" />
+
+
