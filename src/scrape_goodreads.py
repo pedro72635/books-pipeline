@@ -122,11 +122,6 @@ def extract_isbn_from_page():
             isbn10 = m10.group(1).replace("-", "").strip()
             source10 = "pattern_global"
 
-    if isbn10:
-        print(f"[INFO] ISBN10: {isbn10} obtenido desde: {source10}")
-    if isbn13:
-        print(f"[INFO] ISBN13: {isbn13} obtenido desde: {source13}")
-
     return isbn10, isbn13
 
 
