@@ -47,10 +47,10 @@ Dependencias Python:
 
 ```bash
 # Crear entorno virtual
-python -m venv venv
+python -m venv .venv
 # Activar entorno
 # Windows
-venv\Scripts\activate
+.venv\Scripts\activate
 # Linux / macOS
 source venv/bin/activate
 
