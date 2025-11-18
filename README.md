@@ -56,6 +56,9 @@ source venv/bin/activate
 
 # Instalar dependencias
 pip install -r requirements.txt
+
+# Copiar el archivo .env
+copy .env.example .env
 ```
 
 ## 🗂️ Estructura del proyecto
