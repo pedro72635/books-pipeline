@@ -131,6 +131,165 @@ Generará:
 * `docs/quality_metrics.json` 📊
 * `docs/schema.md` 📑
 
+
+# 📘 Apartado Técnico del Pipeline de Libros
+
+## 1. Extracción (Scraper Goodreads)
+
+### ✔️ Tecnología utilizada
+
+-   Selenium WebDriver (headless)
+-   ChromeDriver compatible
+-   Esperas manuales para contenido dinámico
+
+### ✔️ Datos extraídos desde Goodreads
+
+-   **title**
+-   **author**
+-   **rating**
+-   **reviews_count**
+-   **published_year**
+-   **genres**
+-   **description**
+-   **isbn10**
+-   **isbn13**
+-   **pages**
+-   **publisher**
+
+### ✔️ Criterios de scraping
+
+-   Iteración por páginas hasta alcanzar `MAX_BOOKS` o agotar
+    resultados.
+-   Apertura de la página individual para obtener ISBN y metadatos no
+    presentes en la vista de lista.
+-   Limpieza y normalización:
+    -   Valores vacíos → `None`
+    -   Géneros convertidos en lista
+    -   Descripciones largas priorizadas frente a snippets
+
+------------------------------------------------------------------------
+
+## 2. Enriquecimiento (Google Books API)
+
+### ✔️ Datos utilizados del volumen
+
+-   **title**
+-   **authors**
+-   **publisher**
+-   **publishedDate**
+-   **description**
+-   **industryIdentifiers** (ISBN10 / ISBN13)
+-   **pageCount**
+-   **categories**
+-   **language**
+
+### ✔️ Búsqueda y prioridades
+
+1.  **Búsqueda por ISBN** (máxima prioridad)
+2.  **Búsqueda por título + autor**
+3.  Selección del resultado más cercano usando similitud de cadenas
+
+### ✔️ Criterios de selección del libro dentro de Google Books
+
+-   Coincidencia en ISBN10 o ISBN13\
+-   Alta similitud en título\
+-   Coincidencia en autores\
+-   Se descartan resultados poco similares
+
+------------------------------------------------------------------------
+
+## 3. Integración del Pipeline
+
+### Fases
+
+-   **Landing**: datos brutos (`goodreads_books.json`,
+    `googlebooks_books.csv`)
+-   **Staging**: normalización de campos y tipos
+-   **Standard**: dataset final (`dim_book.parquet`)
+-   **Docs**: métricas e información estructural
+    (`quality_metrics.json`, `schema.md`)
+
+------------------------------------------------------------------------
+
+## 4. Priorización entre Goodreads y Google Books
+
+### ✔️ Regla general
+
+> **Si Google Books aporta un dato válido y más completo, prevalece
+> Google.\
+> Si no, se conserva Goodreads.**
+
+### ✔️ Prioridad por campo
+
+  Campo                 Prioridad
+  --------------------- ---------------------------
+  **ISBN13**            **Google → Goodreads**
+  **ISBN10**            **Google → Goodreads**
+  Title                 Google
+  Authors               Google → Goodreads
+  Description           Goodreads (más rica)
+  Publisher             Google
+  Published Year        Goodreads → Google
+  Genres / Categories   Combinados y deduplicados
+  Pages                 Google
+
+### ✔️ Criterios adicionales
+
+-   Si un valor es `None` o vacío en una fuente, se usa el de la otra.
+-   Descripciones:
+    -   Si Google es muy corta (\<150 chars), prevalece Goodreads.
+-   Autores:
+    -   Se normalizan, combinan y deduplican.
+
+------------------------------------------------------------------------
+
+## 5. Deduplicación
+
+### ✔️ Identificador principal
+
+1.  **ISBN13**\
+2.  **ISBN10**\
+3.  **TITLE + AUTHOR normalizados**
+
+### ✔️ Reglas de deduplicación
+
+-   Se elige el registro con más campos completos.
+-   Comparación de calidad de texto (descripción, categorías).
+-   En casos de empate estricto → prevalece **Goodreads**.
+-   Se genera **book_source_detail.parquet** para rastrear origen de
+    cada campo.
+
+------------------------------------------------------------------------
+
+## 6. Métricas de Calidad (quality_metrics.json)
+
+Incluye: - **total_landing** - **total_standard** - **dedupe_loss** -
+**complete_fields** - Advertencias: - Libros sin ISBN - Libros sin
+autor - Libros sin descripción - Fechas inválidas
+
+------------------------------------------------------------------------
+
+## 7. Artefactos finales del pipeline
+
+-   **dim_book.parquet** → Dataset unificado y final\
+-   **book_source_detail.parquet** → Trazabilidad de origen por campo\
+-   **quality_metrics.json** → Métricas de calidad\
+-   **schema.md** → Documentación del esquema resultante
+
+------------------------------------------------------------------------
+
+## 8. Resumen del flujo completo
+
+1.  Scraping desde Goodreads\
+2.  Enriquecimiento con Google Books\
+3.  Integración y normalización\
+4.  Priorización campo a campo\
+5.  Deduplicación basada en ISBN\
+6.  Exportación de artefactos finales\
+7.  Cálculo de métricas
+
+------------------------------------------------------------------------
+
 5. Pruebas de ejecucion:
    
 Muestra de un libro con sus datos de Goodreads:
