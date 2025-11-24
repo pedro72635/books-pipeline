@@ -270,7 +270,6 @@ schema_content = """
 ## dim_book.parquet
 
 Este esquema describe el modelo canónico del dataset `dim_book`, generado a partir de la integración de Goodreads y Google Books. 
-Se ha seleccionado cuidadosamente el tipo de dato y formato de cada campo para asegurar consistencia, calidad y análisis posteriores.
 
 - book_id_chosen: str, not null  
   ID canónico del libro. Se usa `str` porque puede ser ISBN-10, ISBN-13 o hash alfanumérico. No puede ser nulo para asegurar unicidad.
