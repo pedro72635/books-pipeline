@@ -203,7 +203,6 @@ for key in all_keys:
         gb_row.get('isbn13') if gb_row is not None else None
     )
 
-    # 🔥 NUEVA REGLA: ISBN10 DE GOOGLE TIENE PRIORIDAD
     isbn10_gr = gr_row.get('isbn10') if gr_row is not None else None
     isbn10_gb = gb_row.get('isbn10') if gb_row is not None else None
 
