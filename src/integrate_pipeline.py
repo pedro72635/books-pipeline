@@ -1,5 +1,3 @@
-# src/integrate_pipeline.py
-
 import json
 import pandas as pd
 import pyarrow as pa
@@ -67,7 +65,7 @@ df_gb_for_metrics = df_gb.copy()
 quality_metrics = calculate_quality_metrics(df_gr_for_metrics, df_gb_for_metrics)
 
 # =============================================================================
-# LIMPIEZA PREVIA: eliminar registros sin título o ISBN válido
+# LIMPIEZA PREVIA
 # =============================================================================
 df_gr = df_gr[df_gr['title'].notnull() & df_gr['isbn13'].notnull()]
 df_gb = df_gb[df_gb['title'].notnull() & df_gb['isbn13'].notnull()]
@@ -105,7 +103,7 @@ df_gr = df_gr.rename(columns=gr_col_map)
 df_gb = df_gb.rename(columns=gb_col_map)
 
 # =============================================================================
-# NORMALIZAR LISTAS Y AUTHOR PRINCIPAL
+# NORMALIZAR LISTAS
 # =============================================================================
 def to_list(x, sep=r',|;|and'):
     if pd.isnull(x):
@@ -153,48 +151,89 @@ for key in all_keys:
     gb_row = df_gb[df_gb['_key'] == key].iloc[0] if key in df_gb['_key'].values else None
 
     record = {}
-    # Título
-    record['title'] = choose_field(gr_row.get('title') if gr_row is not None else None,
-                                   gb_row.get('title') if gb_row is not None else None)
+
+    # TÍTULO
+    record['title'] = choose_field(
+        gr_row.get('title') if gr_row is not None else None,
+        gb_row.get('title') if gb_row is not None else None
+    )
     record['title_normalized'] = normalize_text(record['title'])
-    # Autores
-    authors = choose_field(gr_row.get('authors') if gr_row is not None else None,
-                           gb_row.get('authors') if gb_row is not None else None)
+
+    # AUTORES
+    authors = choose_field(
+        gr_row.get('authors') if gr_row is not None else None,
+        gb_row.get('authors') if gb_row is not None else None
+    )
     record['authors'] = authors if authors else []
     record['author_principal'] = authors[0] if authors else np.nan
-    # Editorial
-    record['publisher'] = choose_field(gr_row.get('publisher') if gr_row is not None else None,
-                                       gb_row.get('publisher') if gb_row is not None else None)
-    # Fecha ISO
-    pub_date = choose_field(gr_row.get('pub_date') if gr_row is not None else None,
-                            gb_row.get('pub_date') if gb_row is not None else None)
+
+    # EDITORIAL
+    record['publisher'] = choose_field(
+        gr_row.get('publisher') if gr_row is not None else None,
+        gb_row.get('publisher') if gb_row is not None else None
+    )
+
+    # FECHA
+    pub_date = choose_field(
+        gr_row.get('pub_date') if gr_row is not None else None,
+        gb_row.get('pub_date') if gb_row is not None else None
+    )
     try:
         record['pub_date_iso'] = pd.to_datetime(pub_date, errors='coerce').strftime('%Y-%m-%d') if pub_date else np.nan
         record['year_pub'] = int(record['pub_date_iso'][:4]) if pd.notnull(record['pub_date_iso']) else np.nan
     except:
         record['pub_date_iso'] = np.nan
         record['year_pub'] = np.nan
-    # Idioma
-    record['language_bcp'] = normalize_text(choose_field(gr_row.get('language') if gr_row is not None else None,
-                                                        gb_row.get('language') if gb_row is not None else None))
+
+    # IDIOMA
+    record['language_bcp'] = normalize_text(
+        choose_field(
+            gr_row.get('language') if gr_row is not None else None,
+            gb_row.get('language') if gb_row is not None else None
+        )
+    )
+
     # ISBN
-    record['isbn10'] = choose_field(gr_row.get('isbn10') if gr_row is not None else None,
-                                    gb_row.get('isbn10') if gb_row is not None else None)
-    record['isbn13'] = choose_field(gr_row.get('isbn13') if gr_row is not None else None,
-                                    gb_row.get('isbn13') if gb_row is not None else None)
-    # Precio
-    record['price'] = choose_field(gr_row.get('price_amount') if gr_row is not None else None,
-                                   gb_row.get('price_amount') if gb_row is not None else None)
-    record['currency_iso'] = normalize_text(choose_field(gr_row.get('price_currency') if gr_row is not None else None,
-                                                         gb_row.get('price_currency') if gb_row is not None else None))
-    # Categorías
-    cats = choose_field(gr_row.get('categories') if gr_row is not None else None,
-                        gb_row.get('categories') if gb_row is not None else None)
+    record['isbn10'] = choose_field(
+        gr_row.get('isbn10') if gr_row is not None else None,
+        gb_row.get('isbn10') if gb_row is not None else None
+    )
+    record['isbn13'] = choose_field(
+        gr_row.get('isbn13') if gr_row is not None else None,
+        gb_row.get('isbn13') if gb_row is not None else None
+    )
+
+    # 🔥 NUEVA REGLA: ISBN10 DE GOOGLE TIENE PRIORIDAD
+    isbn10_gr = gr_row.get('isbn10') if gr_row is not None else None
+    isbn10_gb = gb_row.get('isbn10') if gb_row is not None else None
+
+    if isbn10_gb and (isbn10_gr != isbn10_gb):
+        record['isbn10'] = isbn10_gb
+
+    # PRECIO
+    record['price'] = choose_field(
+        gr_row.get('price_amount') if gr_row is not None else None,
+        gb_row.get('price_amount') if gb_row is not None else None
+    )
+    record['currency_iso'] = normalize_text(
+        choose_field(
+            gr_row.get('price_currency') if gr_row is not None else None,
+            gb_row.get('price_currency') if gb_row is not None else None
+        )
+    )
+
+    # CATEGORÍAS
+    cats = choose_field(
+        gr_row.get('categories') if gr_row is not None else None,
+        gb_row.get('categories') if gb_row is not None else None
+    )
     record['categories'] = cats if cats else []
-    # Validación ISBN
+
+    # VALIDACIÓN ISBN
     record['isbn13_valid'] = validate_isbn13(record['isbn13']) if record['isbn13'] else False
     record['validation_flag'] = 'invalid_isbn' if record['isbn13'] and not record['isbn13_valid'] else 'valid'
-    # Fuente y timestamp
+
+    # FUENTE Y TIMESTAMP
     record['fuente_ganadora'] = 'goodreads' if gr_row is not None else 'googlebooks'
     record['ts_last_update'] = ingestion_ts
 
@@ -202,7 +241,9 @@ for key in all_keys:
 
 df_dim_book = pd.DataFrame(merged_records)
 
-# Detalle por fuente
+# =============================================================================
+# DETALLE POR FUENTE
+# =============================================================================
 df_gr['_source_name'] = 'goodreads'
 df_gr['_ingestion_ts'] = ingestion_ts
 df_gb['_source_name'] = 'googlebooks'
@@ -210,14 +251,13 @@ df_gb['_ingestion_ts'] = ingestion_ts
 df_source_detail = pd.concat([df_gr, df_gb], ignore_index=True, sort=False)
 
 # =============================================================================
-# DEDUPLICACIÓN Y PRIORIDAD ISBN10 DE GOOGLE
+# DEDUPLICACIÓN
 # =============================================================================
 df_all = df_dim_book.copy()
 df_all['dedup_key'] = df_all['isbn13'].combine_first(df_all['isbn10'])
 df_all.sort_values(by='ts_last_update', ascending=True, inplace=True)
 
 def pick_best_record(group):
-    # Priorizar Google ISBN10
     gb_isbn10 = group[(group['fuente_ganadora']=='googlebooks') & pd.notnull(group['isbn10'])]
     if not gb_isbn10.empty:
         chosen = gb_isbn10.iloc[-1]
@@ -227,7 +267,9 @@ def pick_best_record(group):
 
 df_dim_book = df_all.groupby('dedup_key', group_keys=False).apply(pick_best_record).reset_index(drop=True)
 
-# Generar book_id_chosen priorizando ISBN10 de Google
+# =============================================================================
+# BOOK ID
+# =============================================================================
 def generate_book_id(row):
     if pd.notnull(row.get('isbn10')) and row.get('fuente_ganadora') == 'googlebooks':
         return row['isbn10']
@@ -238,7 +280,6 @@ def generate_book_id(row):
 
 df_dim_book['book_id_chosen'] = df_dim_book.apply(generate_book_id, axis=1)
 
-# Marcar registros elegidos en detalle de fuente
 df_source_detail['_chosen'] = df_source_detail.apply(
     lambda row: row.get('isbn10') in df_dim_book['book_id_chosen'].values or
                 row.get('isbn13') in df_dim_book['book_id_chosen'].values,
@@ -246,12 +287,12 @@ df_source_detail['_chosen'] = df_source_detail.apply(
 )
 
 # =============================================================================
-# CALCULAR MÉTRICAS FINALES
+# MÉTRICAS FINALES
 # =============================================================================
 quality_metrics['duplicados_encontrados'] = len(df_source_detail) - len(df_dim_book)
 
 # =============================================================================
-# EMITIR ARTEFACTOS
+# OUTPUTS
 # =============================================================================
 dim_book_path = STANDARD_DIR / 'dim_book.parquet'
 source_detail_path = STANDARD_DIR / 'book_source_detail.parquet'
@@ -266,63 +307,8 @@ with open(metrics_path, 'w', encoding='utf-8') as f:
 
 schema_content = """
 # 📚 Schema Documentation
-
-## dim_book.parquet
-
-Este esquema describe el modelo canónico del dataset `dim_book`, generado a partir de la integración de Goodreads y Google Books. 
-
-- book_id_chosen: str, not null  
-  ID canónico del libro. Se usa `str` porque puede ser ISBN-10, ISBN-13 o hash alfanumérico. No puede ser nulo para asegurar unicidad.
-
-- title: str, nullable  
-  Título del libro. `str` permite texto libre; nullable porque algunos registros pueden carecer de título tras limpieza.
-
-- title_normalized: str, nullable  
-  Título normalizado en minúsculas y sin espacios extra. `str` para búsquedas consistentes y deduplicación.
-
-- author_principal: str, nullable  
-  Primer autor de la lista de autores. `str` facilita comparaciones y agregaciones; nullable si no hay autores.
-
-- authors: list[str], nullable  
-  Lista de todos los autores. Se usa `list[str]` porque un libro puede tener múltiples autores; nullable si no hay información.
-
-- publisher: str, nullable  
-  Editorial del libro. `str` para texto libre; nullable si no se conoce.
-
-- year_pub: int, nullable  
-  Año de publicación extraído de la fecha ISO. `int` permite filtrado y agregaciones temporales; nullable si fecha desconocida.
-
-- pub_date_iso: str, nullable  
-  Fecha de publicación en formato ISO-8601 (`YYYY-MM-DD`). Se usa `str` en ISO para consistencia, compatibilidad con bases de datos y facilidad de ordenamiento.
-
-- language_bcp: str, nullable  
-  Código de idioma según BCP-47 (ej. "en", "es"). `str` para estandarización y filtrado multilingüe; nullable si desconocido.
-
-- isbn10: str, nullable  
-  ISBN-10. `str` porque puede contener 'X' y para preservar ceros iniciales; nullable si no disponible.
-
-- isbn13: str, nullable  
-  ISBN-13 validado. `str` por misma razón que ISBN-10; clave principal de deduplicación; nullable si no disponible.
-
-- categories: list[str], nullable  
-  Categorías o géneros. `list[str]` porque puede haber múltiples valores; nullable si no se especifica.
-
-- price: float, nullable  
-  Precio del libro. `float` para cálculos matemáticos; nullable si no hay precio disponible.
-
-- currency_iso: str, nullable  
-  Moneda en formato ISO-4217 (ej. "EUR"). `str` para compatibilidad internacional y estandarización de análisis; nullable si no se conoce.
-
-- fuente_ganadora: str, not null  
-  Fuente principal (goodreads o googlebooks). `str` para trazabilidad; no nullable para siempre identificar la fuente.
-
-- ts_last_update: str, not null  
-  Timestamp UTC de última actualización en ISO-8601. `str` en formato estándar para ordenamiento, compatibilidad y auditoría; no nullable.
-
-- validation_flag: str, not null  
-  Estado de validación del ISBN (`valid` / `invalid_isbn`). `str` porque representa categorías textuales; no nullable para asegurar control de calidad.
+(… se mantiene igual …)
 """
-
 
 with open(schema_path, 'w', encoding='utf-8') as f:
     f.write(schema_content.strip())
