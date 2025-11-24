@@ -271,14 +271,17 @@ df_dim_book = df_all.groupby('dedup_key', group_keys=False).apply(pick_best_reco
 # BOOK ID
 # =============================================================================
 def generate_book_id(row):
-    if pd.notnull(row.get('isbn10')) and row.get('fuente_ganadora') == 'googlebooks':
-        return row['isbn10']
     if pd.notnull(row.get('isbn13')):
         return row['isbn13']
+    
+    if pd.notnull(row.get('isbn10')):
+        return row['isbn10']
+
     key_str = f"{row.get('title','')}_{row.get('author_principal','')}_{row.get('publisher','')}_{row.get('pub_date_iso','')}"
     return hashlib.sha256(key_str.encode()).hexdigest()[:16]
 
 df_dim_book['book_id_chosen'] = df_dim_book.apply(generate_book_id, axis=1)
+
 
 df_source_detail['_chosen'] = df_source_detail.apply(
     lambda row: row.get('isbn10') in df_dim_book['book_id_chosen'].values or
